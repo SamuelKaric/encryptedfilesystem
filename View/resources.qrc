@@ -1,0 +1,10 @@
+<RCC>
+    <qresource>
+        <file>resources/folder_closed.svg</file>
+        <file>resources/folder_open.svg</file>
+        <file>resources/generic_file.svg</file>
+        <file>resources/read.svg</file>
+        <file>resources/resize.svg</file>
+        <file>resources/test.svg</file>
+    </qresource>
+</RCC>

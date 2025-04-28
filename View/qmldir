@@ -1,0 +1,11 @@
+module View
+Main 1.0 Main.qml
+Viewer 1.0 qml/Viewer.qml
+TextViewer 1.0 qml/TextViewer.qml
+PDFViewer 1.0 qml/PDFViewer.qml
+MyMenu 1.0 qml/MyMenu.qml
+MyMenuBar 1.0 qml/MyMenuBar.qml
+singleton Colors 1.0 qml/Colors.qml
+FileSystemView 1.0 qml/FileSystemView.qml
+LoginWindow 1.0 qml/LoginWindow.qml
+MyTextInput 1.0 qml/MyTextInput.qml

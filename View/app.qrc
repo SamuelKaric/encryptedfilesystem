@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/qt/qml/View">
+        <file>qmldir</file>
+        <file>Main.qml</file>
+        <file>qml/Viewer.qml</file>
+        <file>qml/TextViewer.qml</file>
+        <file>qml/PDFViewer.qml</file>
+        <file>qml/Colors.qml</file>
+        <file>qml/FileSystemView.qml</file>
+        <file>qml/MyMenu.qml</file>
+        <file>qml/MyMenuBar.qml</file>
+        <file>qml/LoginWindow.qml</file>
+        <file>qml/MyTextInput.qml</file>
+    </qresource>
+</RCC>

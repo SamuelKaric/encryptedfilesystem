@@ -1,0 +1,25 @@
+{
+ "files": [
+    "main.py",
+    "editormodels.py",
+    "FileSystemModule/qmldir",
+    "FileSystemModule/app.qrc",
+    "FileSystemModule/qmldir",
+    "FileSystemModule/Main.qml",
+    "FileSystemModule/qml/Colors.qml",
+    "FileSystemModule/qml/Viewer.qml",
+    "FileSystemModule/qml/TextViewer.qml",
+    "FileSystemModule/qml/PDFViewer.qml",
+    "FileSystemModule/qml/FileSystemView.qml",
+    "FileSystemModule/qml/MyMenu.qml",
+    "FileSystemModule/qml/MyMenuBar.qml",
+    "FileSystemModule/qml/LoginWindow.qml",
+    "FileSystemModule/qml/MyTextInput.qml"
+    "FileSystemModule/resources/folder_closed.svg",
+    "FileSystemModule/resources/folder_open.svg",
+    "FileSystemModule/resources/generic_file.svg",
+    "FileSystemModule/resources/read.svg",
+    "FileSystemModule/resources/resize.svg"
+    "FileSystemModule/resources/test.svg"
+    ]
+}
