@@ -10,6 +10,7 @@ Rectangle {
     color: Colors.background
     visible: true
     property url source: "../resources/test.pdf"
+    property url sourcee: "../resources/test.pdf"
 
     ToolBar {
         id: toolbar
@@ -48,7 +49,7 @@ Rectangle {
 
         document: PdfDocument {
             id: document
-            source: Qt.resolvedUrl(Qt.url(root.source))
+            source: Qt.resolvedUrl(Qt.url(root.sourcee))
             onPasswordRequired: passwordDialog.open()
         }
     }

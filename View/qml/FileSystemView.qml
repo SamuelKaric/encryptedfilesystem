@@ -11,11 +11,21 @@ Rectangle {
 
     signal fileClicked(url filePath)
     property alias rootIndex: fileSystemTreeView.rootIndex
+    property string user: "" 
+    required property string mode
+    required property url certPath
 
     FileUtils{
         id: fileUtils
     }
 
+    DBUtils {
+        id: dbUtils
+    }
+
+    onUserChanged:{
+        FilteredModel.user = root.user
+    }
 
     TreeView {
         id: fileSystemTreeView
@@ -23,8 +33,8 @@ Rectangle {
         property int lastIndex: -1
 
         anchors.fill: parent
-        model: FileSystemModel
-        rootIndex: FileSystemModel.rootIndex
+        model: FilteredModel
+        rootIndex: FilteredModel.rootIndex
         boundsBehavior: Flickable.StopAtBounds
         boundsMovement: Flickable.StopAtBounds
         clip: true
@@ -131,15 +141,81 @@ Rectangle {
 
             FileDialog{
                 id: importDialog
-                nameFilters: ["Text files (*.txt *.html *.htm *.sql *key)", "PDF files(*.pdf)", "Image files(*.svg *.png *.jpg)"]
+                fileMode: FileDialog.OpenFile
+                nameFilters:[   
+                                "Text files (*.txt *.html *.sql *.key)", 
+                                "PDF files(*.pdf)", 
+                                "Image files(*.svg *.png *.jpg)"
+                            ]
                 onAccepted: {
-                    fileUtils.addFile(filePath, selectedFile)
+                    fileUtils.addFile(user, filePath, selectedFile, mode, certPath)
                 }
             }
             FolderDialog{
                 id: downloadDialog
                 onAccepted: {
-                    fileUtils.downloadFile(filePath, currentFolder)
+                    if (!fileUtils.downloadFile(user, filePath, currentFolder, mode, certPath)){
+                        root.unauthorizedFlash = true
+                    }
+                }
+            }
+
+            ListModel {
+                id: userModel
+                Component.onCompleted: {
+                    let users = dbUtils.getAllUsers();
+                    for (let i = 0; i < users.length; i++) {
+                        append({ name: users[i] });
+                    }
+                }
+            }
+
+            FileDialog {
+                id: shareDialog
+                fileMode: FileDialog.OpenFile
+                nameFilters: ["All files (*)"]
+
+                    property string filePath
+                    property string fileName
+                    property string user
+                    property string mode
+                    property string certPath
+                    property string shareWith
+
+                onAccepted: {
+                    fileUtils.shareFile(user, shareWith, filePath, fileName, mode, certPath, selectedFile)
+                }
+            }
+
+            MyMenu {
+                id: shareMenu
+                Instantiator {
+                    id: userInstantiator
+                    model: userModel
+
+                    delegate: MenuItem {
+                        required property int index
+                        required property string name
+                        text: index + 1 + ". " + name
+
+                        onClicked: {
+                            shareDialog.filePath = treeDelegate.filePath
+                            shareDialog.fileName = treeDelegate.fileName
+                            shareDialog.user = root.user
+                            shareDialog.mode = root.mode
+                            shareDialog.certPath = root.certPath
+                            shareDialog.shareWith = name
+                            shareDialog.open();
+                        }
+                        background: Rectangle {
+                            implicitWidth: 210
+                            implicitHeight: 35
+                            color: highlighted ? Colors.active : "transparent"
+                        }
+                    }
+
+                    onObjectAdded: (index, object) => shareMenu.insertItem(index, object)
+                    onObjectRemoved: (index, object) => shareMenu.removeItem(object)
                 }
             }
 
@@ -149,7 +225,6 @@ Rectangle {
                     text: qsTr("Add to folder")
                     onTriggered: {
                         importDialog.open()
-
                     }
                 }
                 Action {
@@ -177,6 +252,13 @@ Rectangle {
                     text: qsTr("Download file")
                     onTriggered: {
                         downloadDialog.open()
+                    }
+                }
+                Action {
+                    text: qsTr("Share file")
+                    onTriggered: {
+                        shareMenu.open()
+
                     }
                 }
                 Action {

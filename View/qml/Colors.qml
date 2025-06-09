@@ -17,4 +17,5 @@ QtObject {
     readonly property color iconIndicator: "#D5B35D"
     readonly property color color1: "#A7B464"
     readonly property color color2: "#D3869B"
+    readonly property color warrning: "#cc0202"
 }

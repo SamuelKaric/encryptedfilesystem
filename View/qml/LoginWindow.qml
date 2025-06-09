@@ -14,7 +14,7 @@ Rectangle{
     property string message
     property string certPath
 
-    signal login(string username, string password)
+    signal login(string username, string password, url certPath)
     signal register(string username, string password)
 
     ColumnLayout{
@@ -41,14 +41,14 @@ Rectangle{
             id: certDialog
             nameFilters: ["PEM files (*.pem)"]
             onAccepted: {
-                root.message = "Selected cert: " + certDialog.file
-                certPath = certDialog.file
+                root.message = "Selected cert: " + selectedFile
+                certPath = selectedFile 
             }
         }
 
         Button{
             id: certButton
-            text: "Choose Cert"
+            text: certPath? certPath.toString() : "Choose Cert"
 
             contentItem: Text {
                 text: certButton.text
@@ -87,7 +87,7 @@ Rectangle{
                     color: Colors.surface2
                 }
 
-                onClicked: root.login(username, password)
+                onClicked: root.login(username, password, certPath)
             }
 
             Button{

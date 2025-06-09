@@ -8,15 +8,14 @@ MenuBar {
 
     required property ApplicationWindow dragWindow
     property alias infoText: windowInfo.text
-    property bool state: true
+    property bool logginState: true
 
     delegate: MenuBarItem {
         id: menuBarItem
-
+        enabled: !logginState
         contentItem: Text {
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
-            visible: state
             text: menuBarItem.text
             font: menuBarItem.font
             elide: Text.ElideRight

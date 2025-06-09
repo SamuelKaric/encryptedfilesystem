@@ -14,6 +14,9 @@ Rectangle {
     property alias text: textArea
     property int currentLineNumber: -1
     property int rowHeight: Math.ceil(fontMetrics.lineSpacing)
+    property string mode: "AES"
+    property string user: ""
+    property url certPath: ""
 
     color: Colors.background
 
@@ -81,7 +84,7 @@ Rectangle {
                 topPadding: 0
                 leftPadding: 10
 
-                text: FileSystemModel.readFile(root.source)
+                text: FilteredModel.readFile(root.source, mode, certPath)
                 tabStopDistance: fontMetrics.averageCharacterWidth * 4
 
                 color: Colors.textFile

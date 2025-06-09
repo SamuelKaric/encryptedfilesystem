@@ -17,6 +17,8 @@ Rectangle {
     property bool isPDF: currentFilePath.toString().endsWith(".pdf")
     property bool isImage: currentFilePath.toString().endsWith(".png")
     property bool validFilePath: (currentFilePath && currentFilePath.toString() !=="")
+    property string mode: "AES"
+    property url certPath: ""
 
     Loader {
         id: loader
@@ -29,13 +31,17 @@ Rectangle {
                 if(item.source === "TextViewer.qml"){
                     console.log(currentFilePath, "text")
                     item.showLineNumbers = showLineNumbers;
-                }   
+                }
+                item.mode = root.mode;
+                item.certPath = root.certPath;
             }
         }
 
         onSourceChanged: {
             if (item) {
                 item.source = currentFilePath;
+                item.mode = root.mode;
+                item.certPath = root.certPath;
             }
         }
     }

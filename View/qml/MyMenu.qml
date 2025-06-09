@@ -4,7 +4,7 @@ import View
 
 Menu {
     id: root
-    property bool isEnabled
+    
     delegate: MenuItem {
         id: menuItem
         contentItem: Item {

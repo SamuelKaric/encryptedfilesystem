@@ -5,9 +5,11 @@ from PySide6.QtQuick import QQuickTextDocument
 from PySide6.QtQml import QmlElement, QmlSingleton
 from PySide6.QtCore import (Qt, QDir, QAbstractListModel, Slot, QFile, QTextStream,
                             QMimeDatabase, QFileInfo, QStandardPaths, QModelIndex,
-                            Signal, Property, QUrl, QObject,QFileInfo)
-from accounts import create_account, verify_account
+                            Signal, Property, QUrl, QObject,QFileInfo, QSortFilterProxyModel)
+from accounts import create_account, verify_account, get_all_users
 import os
+import re
+from encrypt.crypto_utils import symmetric_encrypt, symmetric_decrypt
 
 QML_IMPORT_NAME = "View"
 QML_IMPORT_MAJOR_VERSION = 1
@@ -15,14 +17,19 @@ QML_IMPORT_MAJOR_VERSION = 1
 
 @QmlElement
 class DBUtils(QObject):
-    @Slot(str, str, result=str)
-    def login(self, username: str, password: str) -> str:
-        return verify_account(username, password)
+    @Slot(str, str, QUrl, result=str)
+    def login(self, username: str, password: str, certPath: QUrl) -> str:
+        return verify_account(username, password, certPath.toLocalFile())
     
     @Slot(str, str, result=str)
     def register(self, username: str, password: str) -> str:
         if create_account(username, password):
             FileUtils.makeRD(username)
+    
+    @Slot(result=list)
+    def getAllUsers(self) -> list:
+        users = get_all_users()
+        return users
 
 
 @QmlElement
@@ -32,12 +39,17 @@ class FileUtils(QObject):
     def makeRD(name):
         dir = QDir(FileSystemModel.getDefaultRootDir())
         dir.mkdir(name)
-        QFile(FileSystemModel.getDefaultRootDir() + r"/" + "shared").link(FileSystemModel.getDefaultRootDir() + r"/" +name + r"/shared.lnk")
-    
-    @Slot(QUrl, QUrl, result=str)
-    def downloadFile(self, source: QUrl, destination: QUrl) -> str:
+        
+    @Slot(str, QUrl, QUrl, str, QUrl, result=str)
+    def downloadFile(self, user:str, source: QUrl, destination: QUrl, mode: str, certPath: QUrl) -> str:
         destination_path = os.path.join(destination.toLocalFile(), source.fileName())
-        QFile.copy(source.toString(), destination_path)
+        temp_path = symmetric_decrypt(user, source.toString(), mode, certPath.toLocalFile())
+        if temp_path:
+            QFile.copy(symmetric_decrypt(user, source.toString(), mode, certPath.toLocalFile()), destination_path)
+            return "Successfully downloaded file"
+        else:
+            return "Not Authorized to access this file"
+
 
     @Slot(str, result=str)
     def makeDir(self, input: str) -> str:
@@ -51,7 +63,6 @@ class FileUtils(QObject):
         file_info = QFileInfo(full_path)
         dir_name = file_info.fileName()
         parent_dir = file_info.dir().absolutePath()
-        print(f"There's {full_path} From {parent_dir} rename {dir_name} to {name}")
         QDir(parent_dir).rename(dir_name, name)
 
     @Slot(str, result=str)
@@ -59,10 +70,17 @@ class FileUtils(QObject):
         print(f"Deleting &{input}")
         QDir(input).removeRecursively()
 
-    @Slot(str, QUrl, result=str)
-    def addFile(self, destination: str, input: str) -> str:
+
+    @Slot(str,str, QUrl, str, QUrl, result=str)
+    def addFile(self, user: str, destination: str, input: QUrl, mode: str, certPath: QUrl) -> str:
         print(f"Moving &{input} to &{destination}")
-        QFile.copy(input.toLocalFile(), destination+ r"/" + input.fileName())
+        symmetric_encrypt(user, input.toLocalFile(), destination+ r"/" + input.fileName(), mode, certPath.toLocalFile())
+
+    @Slot(str, str, QUrl, str, str, QUrl, QUrl, result=str)
+    def shareFile(self, user: str, recipiant: str, filePath: QUrl, fileName: str, mode: str, certPath: QUrl, recipiantCertPath) -> str:
+        shared_path = FileSystemModel.getSharedDir() + r"/" + fileName
+        raw_file = symmetric_decrypt(user, filePath.toString(), mode, certPath.toLocalFile())
+        symmetric_encrypt(recipiant, raw_file, shared_path, mode, recipiantCertPath.toLocalFile())
 
     @Slot(str, result=str)
     def deleteFile(self, input: str) -> str:
@@ -91,6 +109,63 @@ class FileUtils(QObject):
 
 @QmlElement
 @QmlSingleton
+class FilteredModel(QSortFilterProxyModel):
+
+    userChanged = Signal()
+    decryptedFileReady = Signal(str)
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self._user = ""
+    
+    @Property(QModelIndex, constant=True)
+    def rootIndex(self):
+        if not self.sourceModel():
+            return QModelIndex()
+        return self.mapFromSource(self.sourceModel().rootIndex)
+    
+    @Property(str, notify=userChanged)
+    def user(self):
+        return self._user
+    
+    @user.setter
+    def user(self, value):
+        self._user = value
+        self.invalidateFilter()
+        self.userChanged.emit()
+    
+    @Slot(QUrl, str, QUrl, result=str)
+    def readFile(self, path, mode, certPath):
+        print(f"Reading file at {path} with mode {mode} and certPath {certPath}")
+        return self.sourceModel().readFile(self._user, path, mode, certPath)
+    
+    @Slot(QUrl, str, QUrl, result=str)
+    def proxy(self, source, mode, certPath):
+        local_path = source.toLocalFile()
+        temp = symmetric_decrypt(self._user, local_path, mode, certPath.toLocalFile())
+        if temp:
+            return QUrl.fromLocalFile(temp).toString()
+        return ""
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        if not self.sourceModel():
+            return False
+        index = self.sourceModel().index(source_row, 0, source_parent)
+        if not index.isValid():
+            return False
+        path = self.sourceModel().filePath(index)
+
+        if self._user in path or "/shared" in path:
+            return True
+
+        for i in range(self.sourceModel().rowCount(index)):
+            if self.filterAcceptsRow(i, index):
+                return True
+        return False
+
+
+@QmlElement
+@QmlSingleton
 class FileSystemModel(QFileSystemModel):
 
     rootIndexChanged = Signal()
@@ -109,16 +184,12 @@ class FileSystemModel(QFileSystemModel):
         self.mDb = QMimeDatabase()
         self.setFilter(QDir.Filter.AllEntries | QDir.Filter.Hidden | QDir.Filter.NoDotAndDotDot)
         self.setInitialDirectory()
-        
 
-    # def data(self, index, /, role = ...):
-    #     if self.filePath(index).endswith("shared") and self.isDir(index):
-    #         return self.getSharedDir()
-    #     return super().data(index, role)
-
-    @Slot(QUrl, result=str)
-    def readFile(self, path):
-        fileName = path.toLocalFile()
+    @Slot(str, QUrl, str, QUrl, result=str)
+    def readFile(self, user: str, path: QUrl, mode: str, certPath: QUrl) -> str:
+        print(certPath)
+        fileName = symmetric_decrypt(user, path.toLocalFile(), mode, certPath.toLocalFile())
+        print(f"readFiles filename is {fileName}")
         if fileName == "":
             return ""
 
@@ -133,7 +204,7 @@ class FileSystemModel(QFileSystemModel):
                 return stream
             else:
                 return self.tr("Error opening the file!")
-        return self.tr("File type not supported!")
+        return self.tr("File type not supported or not accessable!")
 
     def setInitialDirectory(self, path=None):
         if path is None:
